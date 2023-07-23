@@ -1,0 +1,10 @@
+Flask
+flask_cors
+scikit-learn
+pandas
+joblib
+gensim
+bs4
+regex
+nltk
+numpy

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">    
+    <title>StackOverflow API Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">      
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <img src="get.png" alt="Titre de l'API" style="display: block; margin: 0 auto;">  
+    <center><h1>Catégorisez automatiquement des questions</h1></center>
+
+    
+    <form action="http://kaneda.pythonanywhere.com/predict_tags" method="POST">
+        <label for="text">Texte :</label><br>
+        <textarea id="text" name="text" rows="4" cols="50"></textarea><br>
+        <input type="submit" value="Prédire">
+    </form>
+
+    <h2>Résultats de la prédiction :</h2>
+    <p id="results"></p>
+
+    <script>
+        const form = document.querySelector('form');
+        const results = document.querySelector('#results');
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            fetch('http://kaneda.pythonanywhere.com/predict_tags', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: form.text.value }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Erreur du serveur");
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.unsupervised_tags.length === 0 && data.supervised_tags.length === 0) {
+                    results.textContent = 'Aucune suggestion';
+                    results.style.color = 'black';
+                } else {
+                    results.textContent = 'Tags non supervisés : ' + data.unsupervised_tags + ', Tags supervisés : ' + data.supervised_tags;
+                    results.style.color = 'black';
+                }
+            })
+            .catch((error) => {
+                results.textContent = 'Erreur : ' + error.message;
+                results.style.color = 'red';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+1 - installation de flask
+
+  pip install flask
+  
+2 - app.py
+
+from flask import Flask, request, jsonify
+import joblib
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.svm import LinearSVC
+from clean_text import clean_text  
+
+app = Flask(__name__)
+
+
+# fonction de chargement du modèle
+def load_model():
+    # Charger le modèle entraîné
+    model = joblib.load('./models/classification_model_fabrice_deprez_OPP5_062023.pkl')
+
+    # Charger le vectoriseur TF-IDF
+    vectorizer = joblib.load('vectorizer.pkl')
+
+    # Charger le MultiLabelBinarizer
+    mlb = joblib.load('mlb.pkl')
+
+    return model, vectorizer, mlb
+    
+# définition d'une route POST pour prendre en charge le body     
+
+# ajouter une autre route, qui prend une méthode Get 
+qui affiche un welcome 
+
+#il faut donner une information pour indiquer que le serveur d'api fonctionne correctement
+# gérer post et get (get renvoie une aide)
+# Hello, i work .....
+
+@app.route('/predict_tags', methods=['POST'])
+def predict_tags():
+    # Charger le modèle, le vectoriseur et le MultiLabelBinarizer
+    model, vectorizer, mlb = load_model()
+
+    # Obtenir les données d'entrée à partir de la requête
+    body = request.form['body']
+    tags = request.form.get('tags', '')  # Les tags peuvent être vides
+
+    # Prétraiter le texte du body et le combiner avec les tags
+    cleaned_body = clean_text(body)
+    combined_text = cleaned_body + ' ' + tags
+
+    # Vectoriser le texte d'entrée
+    input_vector = vectorizer.transform([combined_text])
+
+    # Faire des prédictions avec le modèle
+    predicted_labels = model.predict(input_vector)
+
+    # Décoder les étiquettes prédites en utilisant le MultiLabelBinarizer
+    predicted_tags = mlb.inverse_transform(predicted_labels)
+
+    return jsonify({'tags': predicted_tags})
+    
+if __name__ == '__main__':
+    app.run(debug=True)
+
+3 - démarrer l'api
+
+python app.py
+
+accès via : http://localhost:5000/predict_tags
+
+4 - exemple HTML pour tester l'aPI
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API</title>
+</head>
+<body>
+    <h1>Test API</h1>
+
+    <label for="body">Body:</label><br>
+    <textarea id="body" rows="4" cols="50"></textarea><br>
+
+    <label for="tags">Tags:</label><br>
+    <input type="text" id="tags"><br>
+
+    <button onclick="predictTags()">Predict Tags</button>
+
+    <h2>Tags Suggestions:</h2>
+    <ul id="tagsList"></ul>
+
+    <script>
+        function predictTags() {
+            var body = document.getElementById('body').value;
+            var tags = document.getElementById('tags').value;
+
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "http://localhost:5000/predict_tags", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    var tagsList = document.getElementById('tagsList');
+                    tagsList.innerHTML = '';
+
+                    response.tags[0].forEach(function (tag) {
+                        var li = document.createElement("li");
+                        li.appendChild(document.createTextNode(tag));
+                        tagsList.appendChild(li);
+                    });
+                }
+            };
+
+            xhr.send("body=" + encodeURIComponent(body) + "&tags=" + encodeURIComponent(tags));
+        }
+    </script>
+</body>
+</html>
+
+Approche LDA, les textes vont être regroupés en fonction de leur sujet
+
+le but est de créer des topics a partir d'algo non supervisé
+
+
+chaque mot est représenté dans le vecteur par le nombre d'occurence des mots reproduit
+
+Gengine et pildi10 permette de creer les taches ci dessus
+
+Ajouter l'analyse LDA
+
+il faut 2 approches 1 supervisée
+1 non supervisée
+    
+
+
+
+      
