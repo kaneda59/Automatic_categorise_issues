@@ -2,37 +2,46 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">    
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>StackOverflow API Test</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">      
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
 <body>
-    <img src="get.png" alt="Titre de l'API" style="display: block; margin: 0 auto;">  
+    <img src="get.png" alt="Titre de l'API" style="display: block; margin: 0 auto;">
     <center><h1>Catégorisez automatiquement des questions</h1></center>
 
-    
-    <form action="http://kaneda.pythonanywhere.com/predict_tags" method="POST">
+
+    <form id="ldaForm" action="https://kaneda.pythonanywhere.com/predict_tags" method="POST">
         <label for="text">Texte :</label><br>
         <textarea id="text" name="text" rows="4" cols="50"></textarea><br>
-        <input type="submit" value="Prédire">
+        <input type="submit" value="Prédire LDA">
     </form>
 
-    <h2>Résultats de la prédiction :</h2>
-    <p id="results"></p>
+    <form id="nmfForm" action="https://kaneda.pythonanywhere.com/predict_tags_nmf" method="POST">
+        <label for="text2">Texte :</label><br>
+        <textarea id="text2" name="text" rows="4" cols="50"></textarea><br>
+        <input type="submit" value="Prédire NMF">
+    </form>
+
+    <h2>Résultats de la prédiction LDA :</h2>
+    <p id="resultsLda"></p>
+
+    <h2>Résultats de la prédiction NMF :</h2>
+    <p id="resultsNmf"></p>
 
     <script>
-        const form = document.querySelector('form');
-        const results = document.querySelector('#results');
+        const ldaForm = document.querySelector('#ldaForm');
+        const resultsLda = document.querySelector('#resultsLda');
 
-        form.addEventListener('submit', (event) => {
+        ldaForm.addEventListener('submit', (event) => {
             event.preventDefault();
-            fetch('http://kaneda.pythonanywhere.com/predict_tags', {
+            fetch('https://kaneda.pythonanywhere.com/predict_tags', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ text: form.text.value }),
+                body: JSON.stringify({ text: ldaForm.text.value }),
             })
             .then(response => {
                 if (!response.ok) {
@@ -42,16 +51,49 @@
             })
             .then(data => {
                 if (data.unsupervised_tags.length === 0 && data.supervised_tags.length === 0) {
-                    results.textContent = 'Aucune suggestion';
-                    results.style.color = 'black';
+                    resultsLda.textContent = 'Aucune suggestion';
+                    resultsLda.style.color = 'black';
                 } else {
-                    results.textContent = 'Tags non supervisés : ' + data.unsupervised_tags + ', Tags supervisés : ' + data.supervised_tags;
-                    results.style.color = 'black';
+                    resultsLda.textContent = 'Tags non supervisés : ' + data.unsupervised_tags + ', Tags supervisés : ' + data.supervised_tags;
+                    resultsLda.style.color = 'black';
                 }
             })
             .catch((error) => {
-                results.textContent = 'Erreur : ' + error.message;
-                results.style.color = 'red';
+                resultsLda.textContent = 'Erreur : ' + error.message;
+                resultsLda.style.color = 'red';
+            });
+        });
+
+        const nmfForm = document.querySelector('#nmfForm');
+        const resultsNmf = document.querySelector('#resultsNmf');
+
+        nmfForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            fetch('https://kaneda.pythonanywhere.com/predict_tags_nmf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ text: nmfForm.text.value }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Erreur du serveur");
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.nmf_tags.length === 0) {
+                    resultsNmf.textContent = 'Aucune suggestion';
+                    resultsNmf.style.color = 'black';
+                } else {
+                    resultsNmf.textContent = 'Tags NMF : ' + data.nmf_tags;
+                    resultsNmf.style.color = 'black';
+                }
+            })
+            .catch((error) => {
+                resultsNmf.textContent = 'Erreur : ' + error.message;
+                resultsNmf.style.color = 'red';
             });
         });
     </script>

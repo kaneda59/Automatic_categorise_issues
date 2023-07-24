@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import re
 import pickle
@@ -14,7 +15,7 @@ from nltk.stem import WordNetLemmatizer
 ## Nettoyage
 def clean_text(text):
     """
-    cette fonction permet de nettoyer un texte, la base du texte est supposee en anglais
+    cette fonction permet de nettoyer un texte, la base du texte est supposée en anglais
     Args:
         text(String): text à nettoyer
     Returns
@@ -27,18 +28,18 @@ def clean_text(text):
 
     text = ' '.join(text.stripped_strings)
 
-    # Supprimer la ponctuation et les caracteres speciaux
+    # Supprimer la ponctuation et les caractères spéciaux
     text = re.sub('[^a-zA-Z0-9]', ' ', text)
 
     # Mettre en minuscule
     text = text.lower()
 
-    # Remplacer les mots specifiques
+    # Remplacer les mots spécifiques
     text = re.sub(r'\bC\+\+\b', 'cplusplus', text)
     #attention a casesentivie
     text = re.sub(r'\b5G\b', 'fiveg', text, flags=re.IGNORECASE)
     text = re.sub(r'\b4G\b', 'fourg', text, flags=re.IGNORECASE)
-    # Ajoutez d'autres remplacements si necessaire pour les mots specifiques
+    # Ajoutez d'autres remplacements si nécessaire pour les mots spécifiques
 
     # Supprimer les mots vides
     stop_words = set(stopwords.words('english'))
@@ -49,7 +50,7 @@ def clean_text(text):
     lemmatizer = nltk.WordNetLemmatizer()
     tokens = [lemmatizer.lemmatize(token) for token in tokens]
 
-    # Rejoindre les tokens en une chaine de caracteres
+    # Rejoindre les tokens en une chaîne de caractères
     cleaned_text = ' '.join(tokens)
 
     return cleaned_text
@@ -61,7 +62,7 @@ def tokenize(text):
     Args:
         text(String): text d'origine
     Returns
-        res(list): Chaine tokenisee.
+        res(list): Chaîne tokenisée.
     """
     stop_words = set(stopwords.words('english'))
 
@@ -75,11 +76,11 @@ def tokenize(text):
 
 def filtering_nouns(tokens):
     """
-    Filtrer les noms singuliers
+    Filter singular nouns
     Args:
-        tokens(list): liste de tokens
+        tokens(list): A list o tokens
     Returns:
-        res(list): list de token filtres
+        res(list): Filtered token list
     """
     res = nltk.pos_tag(tokens)
 
@@ -89,11 +90,12 @@ def filtering_nouns(tokens):
 
 def lemmatize(tokens):
     """
-    Transformer les jetons en lems
+    Transform tokens into lems
+
     Args:
-        tokens(list): liste de tokens
+        tokens(list): List of tokens
     Returns:
-        lemmatized(list): liste de tokens lematises
+        lemmatized(list): List of lemmatized tokens
     """
     lemmatizer = WordNetLemmatizer()
     lemmatized = []
@@ -120,12 +122,12 @@ class SupervisedModel:
 
     def predict_tags(self, text):
         """
-        Predire les balises en fonction d'un texte lemmatise à l'aide d'un modele supervise.
+        Predict tags according to a lemmatized text using a supervied model.
         Args:
-            supervised_model(): Mode utilise pour obtenir une prediction
-            mlb_model(): Modèle utilise pour détransformer
+            supervised_model(): Used mode to get prediction
+            mlb_model(): Used model to detransform
         Returns:
-            res(list): Liste des tags predits
+            res(list): List of predicted tags
         """
         input_vector = self.tfidf_model.transform(text)
         input_vector = pd.DataFrame(input_vector.toarray(), columns=self.vocabulary)
@@ -147,16 +149,16 @@ class LdaModel:
 
     def predict_tags(self, text):
         """
-        Predire les balises d'un texte pretraite
+        Predict tags of a preprocessed text
         Args:
-            text(list): texte pretraite
+            text(list): preprocessed text
         Returns:
-            res(list): liste des etiquettes
+            res(list): list of tags
         """
         corpus_new = self.dictionary.doc2bow(text)
         topics = self.model.get_document_topics(corpus_new)
 
-        #trouver le sujet le plus pertinent en fonction de la probabilite
+        #find most relevant topic according to probability
         relevant_topic = topics[0][0]
         relevant_topic_prob = topics[0][1]
 
@@ -165,9 +167,42 @@ class LdaModel:
                 relevant_topic = topics[i][0]
                 relevant_topic_prob = topics[i][1]
 
-        #recuperer les informations associees aux balises thematiques presentes dans le texte soumis
+        #retrieve associated to topic tags present in submited text
         res = self.model.get_topic_terms(topicid=relevant_topic, topn=20)
 
         res = [self.dictionary[tag[0]] for tag in res if self.dictionary[tag[0]] in text]
 
         return res
+
+class NMFModel:
+
+    def __init__(self):
+        filename_nmf_model = "/home/kaneda/api/models/nmf_model.pkl"
+        filename_vectorizer_model = "/home/kaneda/api/models/vectorizer.pkl"
+
+        self.nmf_model = pickle.load(open(filename_nmf_model, 'rb'))
+        self.vectorizer = pickle.load(open(filename_vectorizer_model, 'rb'))
+
+    def predict_tags(self, text):
+        """
+        Predict tags of a preprocessed text
+        Args:
+            text(list): preprocessed text
+        Returns:
+            res(list): list of tags
+        """
+        text_str = ' '.join(text)  # Convert list of tokens to a single string
+        tfidf = self.vectorizer.transform([text_str])  # Pass the string to the transform method
+        W = self.nmf_model.transform(tfidf)
+        H = self.nmf_model.components_
+
+        # Get the top 10 words for this topic
+        feature_names = self.vectorizer.get_feature_names_out()
+        top_indices = np.argsort(H[:, np.argmax(W)])[::-1]
+        top_feature_names = [feature_names[i] for i in top_indices[:10]]
+
+        # retrieve associated to topic tags present in submitted text
+        res = [tag for tag in top_feature_names if tag in text]
+
+        return res
+

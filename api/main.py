@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from tools import clean_text, tokenize, filtering_nouns, lemmatize, LdaModel, SupervisedModel
+from tools import clean_text, tokenize, filtering_nouns, lemmatize, LdaModel, SupervisedModel, NMFModel
 
 app = Flask(__name__)
 CORS(app)
@@ -51,6 +51,23 @@ def get_prediction():
     return jsonify({"text": text,
                     "unsupervised_tags": unsupervised_pred,
                     "supervised_tags": supervised_pred})
+
+@app.route('/predict_tags_nmf', methods=['POST'])
+def get_prediction_nmf():
+    data = request.json
+    input_data = Input(text=data.get('text'))
+
+    cleaned_text = clean_text(data['text'])
+    tokenized_text = tokenize(cleaned_text)
+    filtered_noun_text = filtering_nouns(tokenized_text)
+    lemmatized_text = lemmatize(filtered_noun_text)
+
+    nmf_model = NMFModel()
+    nmf_pred = nmf_model.predict_tags(lemmatized_text)
+    text = input_data.text
+
+    return jsonify({"text": text,
+                    "nmf_tags": nmf_pred})
 
 #if __name__ == '__main__':
 #    app.run(host='0.0.0.0', debug=True)
