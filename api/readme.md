@@ -65,3 +65,5 @@ l'api est déployée sur http://kaneda.pythonanywhere.com/ via pythonAnywhere
 utilisation : http://kaneda.pythonanywhere.com/predict_tags
 
 repository : https://github.com/kaneda59/P5_Automatic_categorise_issues.git
+
+vous pouvez tester l'api avec le fichier html : index.html (url : https://kaneda.pythonanywhere.com/static/index.html)
