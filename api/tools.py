@@ -1,16 +1,20 @@
-import numpy as np
-import pandas as pd
 import re
 import pickle
-from bs4 import BeautifulSoup
+import numpy as np
+import pandas as pd
+
 import nltk
+from nltk.corpus import stopwords
+from nltk import word_tokenize
+from nltk.stem import WordNetLemmatizer
+
+from bs4 import BeautifulSoup
+from gensim.models import Word2Vec
+
 nltk.download('wordnet')
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('averaged_perceptron_tagger')
-from nltk.corpus import stopwords
-from nltk import word_tokenize
-from nltk.stem import WordNetLemmatizer
 
 ## Nettoyage
 def clean_text(text):
@@ -74,6 +78,7 @@ def tokenize(text):
     res = [token for token in res if token not in stop_words]
     return res
 
+
 def filtering_nouns(tokens):
     """
     Filter singular nouns
@@ -87,6 +92,7 @@ def filtering_nouns(tokens):
     res = [token[0] for token in res if token[1] == 'NN']
 
     return res
+
 
 def lemmatize(tokens):
     """
@@ -105,6 +111,9 @@ def lemmatize(tokens):
 
     return lemmatized
 
+
+'''
+mise en commentaire de la méthode avec TF-IDF
 class SupervisedModel:
 
     def __init__(self):
@@ -118,8 +127,9 @@ class SupervisedModel:
         self.mlb_model = pickle.load(open(filename_mlb_model, 'rb'))
         self.tfidf_model = pickle.load(open(filename_tfidf_model, 'rb'))
         self.pca_model = pickle.load(open(filename_pca_model, 'rb'))
-        self.vocabulary = pickle.load(open(filename_vocabulary, 'rb'))
+        self.vocabulary = pickle.load(open(filename_vocabulary , 'rb'))
 
+        
     def predict_tags(self, text):
         """
         Predict tags according to a lemmatized text using a supervied model.
@@ -138,14 +148,41 @@ class SupervisedModel:
         res = [tag for tag  in res if tag in text]
 
         return res
+'''
+
+class SupervisedModel:
+
+
+    def __init__(self):
+        filename_supervised_model = "/home/kaneda/api/models/svm_model.pkl"
+        filename_mlb_model = "/home/kaneda/api/models/mlb_model.pkl"
+        filename_w2v_model = "/home/kaneda/api/models/xord2vec.pkl"  
+
+        self.supervised_model = pickle.load(open(filename_supervised_model, 'rb'))
+        self.mlb_model = pickle.load(open(filename_mlb_model, 'rb'))
+        self.w2v_model = Word2Vec.load(filename_w2v_model)
+
+
+    def predict_tags(self, text):
+        vectorized_text = [self.w2v_model.wv[word] for word in text if word in self.w2v_model.wv]
+        if len(vectorized_text) > 0:
+            input_vector = np.mean(vectorized_text, axis=0).reshape(1, -1)
+            res = self.supervised_model.predict(input_vector)
+            res = self.mlb_model.inverse_transform(res)
+            return list({tag for tag_list in res for tag in tag_list if (len(tag_list) != 0)})
+        else:
+            return []
+
 
 class LdaModel:
+
 
     def __init__(self):
         filename_model = "/home/kaneda/api/models/lda_model.pkl"
         filename_dictionary = "/home/kaneda/api/models/dictionary.pkl"
         self.model = pickle.load(open(filename_model, 'rb'))
         self.dictionary = pickle.load(open(filename_dictionary, 'rb'))
+
 
     def predict_tags(self, text):
         """
@@ -174,7 +211,9 @@ class LdaModel:
 
         return res
 
+
 class NMFModel:
+
 
     def __init__(self):
         filename_nmf_model = "/home/kaneda/api/models/nmf_model.pkl"
@@ -182,6 +221,7 @@ class NMFModel:
 
         self.nmf_model = pickle.load(open(filename_nmf_model, 'rb'))
         self.vectorizer = pickle.load(open(filename_vectorizer_model, 'rb'))
+
 
     def predict_tags(self, text):
         """
@@ -191,8 +231,10 @@ class NMFModel:
         Returns:
             res(list): list of tags
         """
-        text_str = ' '.join(text)  # Convert list of tokens to a single string
-        tfidf = self.vectorizer.transform([text_str])  # Pass the string to the transform method
+        # Convert list of tokens to a single string
+        text_str = ' '.join(text)  
+        # Pass the string to the transform method
+        tfidf = self.vectorizer.transform([text_str])  
         W = self.nmf_model.transform(tfidf)
         H = self.nmf_model.components_
 

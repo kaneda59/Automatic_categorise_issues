@@ -2,3 +2,5 @@ notes/informations_prealables_algo.txt
 notes/informations.txt
 *.zip
 *.csv
+data/glove.6B.100d.txt
+

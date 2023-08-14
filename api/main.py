@@ -6,12 +6,14 @@ app = Flask(__name__)
 CORS(app)
 
 @app.route('/')
+
+
 def home():
     return '''
         <h1>Bienvenue à l'API de prédiction des mots clés</h1>
         <p>Cette API fournit deux méthodes pour prédire les mots clés d'un texte.</p>
         <h2>Utilisation</h2>
-        <p>POST /predict_tags : Prédit les mots clés d'un texte donné.</p>
+        <p>POST /predict_tags : Prédit les mots clés d'un texte donné. </p>
         <p>Exemple :</p>
         <code>
             {
@@ -29,11 +31,17 @@ def home():
         </code>
     '''
 
+
 class Input:
+
+
     def __init__(self, text):
         self.text = text
 
+
 @app.route('/predict_tags', methods=['POST'])
+
+
 def get_prediction():
     data = request.json
     input_data = Input(text=data.get('text'))
@@ -52,7 +60,10 @@ def get_prediction():
                     "unsupervised_tags": unsupervised_pred,
                     "supervised_tags": supervised_pred})
 
+
 @app.route('/predict_tags_nmf', methods=['POST'])
+
+
 def get_prediction_nmf():
     data = request.json
     input_data = Input(text=data.get('text'))
